@@ -5,4 +5,10 @@ In the Event List Screen:
         - Must add a notes field for the event. This will be seen when the user hits on the event itself
         - At the end of each event screen, there will be an option to delete the event or to mark as completed
     - When the user selects all the events, they should be able to see an indicator showing the status of the event
-    
+
+In the Login and Registration Pages:
+    - Clear the form fields once the user logs in
+
+App flow:
+    - Keep the user signed in until they press log out.
+    - Prevent the user from going back to the login or registration screen once they are in the app unless they press log out

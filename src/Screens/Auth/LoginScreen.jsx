@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -18,7 +18,6 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     try{
       const response = await signInWithEmailAndPassword(auth,email,password);
-      navigation.navigate("Main")
     }
     catch(error){
       console.log(error.message)
@@ -28,6 +27,14 @@ const LoginScreen = ({ navigation }) => {
       setPassword("");
     }
   };
+
+  useEffect(()=>{
+    auth.onAuthStateChanged(user =>{
+      if (user){
+        navigation.navigate("Main")
+      }
+    })
+  },[ ])
 
   return (
     <View style={[styles.container]}>

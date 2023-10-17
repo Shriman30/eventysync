@@ -70,7 +70,9 @@ const CreateEvent = ({
             value={eventLocation}
             onChangeText={(text) => setEventLocation(text)}
           />
-          <View style={{flexDirection:'row' ,justifyContent:'space-evenly'}}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-evenly" }}
+          >
             <TouchableOpacity
               style={{
                 backgroundColor: "#F2E8A2",
@@ -79,9 +81,9 @@ const CreateEvent = ({
                 width: 100,
                 height: 40,
                 marginVertical: 16,
-                marginHorizontal:12,
-                borderWidth:0.5,
-                borderColor:'#753742',
+                marginHorizontal: 12,
+                borderWidth: 0.5,
+                borderColor: "#753742",
                 borderRadius: 4,
               }}
               onPress={showDatePicker}
@@ -171,8 +173,8 @@ const styles = StyleSheet.create({
     borderColor: "gray",
     borderRadius: 5,
     padding: 8,
-    color:'#F2E8A2',
-    fontWeight:'600',
+    color: "#F2E8A2",
+    fontWeight: "600",
     marginBottom: 12,
   },
   button: {
