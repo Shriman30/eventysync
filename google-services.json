@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "236682979010",
+    "project_id": "eventsync-a83bc",
+    "storage_bucket": "eventsync-a83bc.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:236682979010:android:c60f5e438d08f965127d5b",
+        "android_client_info": {
+          "package_name": "com.shriman.eventsync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIi2b7sciSYf-JUwkYhMbOoPzlbmywoFA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

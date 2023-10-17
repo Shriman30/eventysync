@@ -1,0 +1,8 @@
+In the Event List Screen:
+    - Each card must have a mark as completed and delete buttons
+    - Include a sorting feature that will sort the events alphabetically, upcoming time in order
+    - When you click on an event it opens up to show more details about the event.
+        - Must add a notes field for the event. This will be seen when the user hits on the event itself
+        - At the end of each event screen, there will be an option to delete the event or to mark as completed
+    - When the user selects all the events, they should be able to see an indicator showing the status of the event
+    
