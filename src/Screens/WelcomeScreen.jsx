@@ -1,14 +1,19 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
+import firebaseAuth from "../../firebaseConfig";
+import { getAuth} from "firebase/auth";
 
 const WelcomeScreen = ({ navigation }) => {
+  const auth = getAuth(firebaseAuth)
   const onSignInPress = () => {
     navigation.navigate("Login");
   };
   const onRegisterPress = () => {
     navigation.navigate("Register");
   };
+
+
   return (
     <View style={styles.container}>
       <Image style={styles.logo} source={require("../../assets/logo.png")} />

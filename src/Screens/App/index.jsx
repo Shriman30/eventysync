@@ -1,11 +1,9 @@
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text} from "react-native";
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Dashboard from "./Dashboard";
 import EventList from "./EventList";
-import Tasks from "./Tasks";
-import CalendarView from "./CalendarView";
 import Profile from "./Profile";
 
 const Tab = createBottomTabNavigator();

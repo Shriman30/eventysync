@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,61 +6,90 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { format } from "date-fns";
 
 const UpcomingEventsSection = ({ navigation }) => {
+  const [events, setEvents] = useState([]);
 
+  // Function to fetch upcoming events from Firebase
+  const fetchUpcomingEvents = async () => {
+    try {
+      const firestore = getFirestore();
+      const eventsCollection = collection(firestore, "Events");
+      const auth = getAuth();
+      const user = auth.currentUser;
 
-  const eventsData = [
-    {
-      id: "1",
-      name: "Event 1",
-      date: "2023-10-25",
-      time: "10:00 AM",
-      location: "Venue 1",
-    },
-    {
-      id: "2",
-      name: "Event 2",
-      date: "2023-11-05",
-      time: "2:00 PM",
-      location: "Venue 2",
-    },
-    {
-      id: "3",
-      name: "Event 3",
-      date: "2023-11-05",
-      time: "2:00 PM",
-      location: "Venue 2",
-    },
-    // Add more event objects here...
-  ];
+      if (user) {
+        // Construct a Firestore query to get upcoming events for the current user
+        const q = query(
+          eventsCollection,
+          where("status", "==", "upcoming"), // Adjust the status filter
+          where("createdBy", "==", user.uid)
+        );
 
-  const goToEventDetails = () => {
-    navigation.navigate("EventDetails");
+        const eventSnapshot = await getDocs(q);
+
+        const eventData = eventSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEvents(eventData);
+      }
+    } catch (error) {
+      console.error("Error fetching upcoming events:", error);
+    }
   };
+
+  useEffect(() => {
+    fetchUpcomingEvents();
+  }, []); // Empty dependency array means it will fetch events once when the component mounts
 
   return (
     <View style={styles.section}>
       <FlatList
         horizontal
-        data={eventsData}
+        data={events}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.eventCard}>
             <View style={styles.eventStatusIndicator}></View>
             <Text style={styles.eventName}>{item.name}</Text>
-            <Text style={{color:'white'}}>Date: {item.date}</Text>
-            <Text style={{color:'white'}}>Time: {item.time}</Text>
-            <Text style={{color:'white'}}>Location: {item.location}</Text>
+            <Text style={{ color: "white" }}>
+              Date:{" "}
+              {item.date ? format(item.date.toDate(), "yyyy-MM-dd") : "N/A"}
+            </Text>
+            <Text style={{ color: "white" }}>
+              Time: {item.time ? format(item.time.toDate(), "h:mm a") : "N/A"}
+            </Text>
+            <Text style={{ color: "white" }}>Location: {item.location}</Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={goToEventDetails}
+                onPress={() => {
+                  navigation.navigate("EventDetails", { event: item });
+                }}
               >
-                <Text style={{ textAlign: "center" ,color:"#F3ECA8"}}>View Details</Text>
+                <Text style={{ textAlign: "center", color: "#F3ECA8" }}>
+                  View Details
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton,{backgroundColor:"#18694A"}]}>
-                <Text style={{ textAlign: "center",color:"#F3ECA8"}}>Mark Completed</Text>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: "#18694A" }]}
+                onPress={() => {
+                  // Implement the action for marking the event as completed
+                }}
+              >
+                <Text style={{ textAlign: "center", color: "#F3ECA8" }}>
+                  Mark Completed
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -90,8 +119,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, // Border width for Glassmorphism effect
     shadowColor: textColor, // Neomorphism shadow color
     shadowOpacity: 1, // Neomorphism shadow opacity
-    shadowOffset:20,
-    shadowRadius:1,
+    shadowOffset: 20,
+    shadowRadius: 1,
   },
   // This will change dynamically based on if it is ongoing or upcoming
   eventStatusIndicator: {
@@ -121,10 +150,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "48%", // Adjust as needed,
-    shadowColor:textColor,
-    shadowRadius:1,
-    shadowOpacity:0.5,
-    shadowOffset:20,
+    shadowColor: textColor,
+    shadowRadius: 1,
+    shadowOpacity: 0.5,
+    shadowOffset: 20,
   },
 });
 

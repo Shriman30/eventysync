@@ -7,8 +7,6 @@ import {
   TextInput,
   StyleSheet,
 } from "react-native";
-import Header from "../../Components/Header";
-import FilterButton from "../../Components/FilterButton";
 import {
   getFirestore,
   collection,
@@ -18,14 +16,20 @@ import {
   getDocs,
   onSnapshot,
 } from "firebase/firestore";
+
+import Header from "../../Components/Header";
+import FilterButton from "../../Components/FilterButton";
+import CreateEvent from "../../Components/CreateEvent";
+
 import { getAuth } from "firebase/auth";
 import { Button } from "react-native-elements/dist/buttons/Button";
-import { format } from 'date-fns';
-import CreateEvent from "../../Components/CreateEvent";
+import { format } from "date-fns";
 
 const EventList = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all"); // Filter options: 'all', 'upcoming', 'ongoing', 'completed'
+
+  // state to load the user's events
   const [events, setEvents] = useState([]);
 
   // states to manage event creation and modal:
@@ -46,7 +50,7 @@ const EventList = ({ navigation }) => {
       const user = auth.currentUser;
 
       // Create a new event object
-      // TODO: the status should change based on the date inputted by the usertr
+      // TODO: the status should change based on the date inputted by the user
       const newEvent = {
         name: eventName,
         date: eventDate,
@@ -64,7 +68,6 @@ const EventList = ({ navigation }) => {
       toggleModal(); // Close the modal
 
       setEventCreated(true);
-
       setEventName("");
       setEventDate("");
       setEventTime("");
@@ -74,7 +77,7 @@ const EventList = ({ navigation }) => {
     }
   };
 
-  // Function to fetch events from Firebase based on status and the authenticated user
+  // Function to fetch events from Firebase based on the status of the event and the authenticated user
   const fetchEventsByFilter = async () => {
     const firestore = getFirestore();
     const eventsCollection = collection(firestore, "Events");
@@ -108,7 +111,7 @@ const EventList = ({ navigation }) => {
 
   useEffect(() => {
     fetchEventsByFilter();
-  
+
     // Cleanup function to unsubscribe when the component unmounts
     return () => {
       // Unsubscribe from the Firestore listener
@@ -212,6 +215,7 @@ const EventList = ({ navigation }) => {
           />
         </View>
       </View>
+
       {/*  Create Event form Modal */}
       <CreateEvent
         isModalVisible={isModalVisible}
@@ -226,6 +230,7 @@ const EventList = ({ navigation }) => {
         handleSubmit={handleSubmit}
         toggleModal={toggleModal}
       />
+
       {/* Events List */}
       <ScrollView style={styles.scrollableSection}>
         <View style={{ marginTop: 12 }}>
@@ -239,28 +244,34 @@ const EventList = ({ navigation }) => {
                   navigation.navigate("EventDetails", { event });
                 }}
               >
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  marginBottom: 8,
-                  color: "#F2E8A2",
-                }}
-              >
-                {event.name}
-              </Text>
-              <Text style={{ color: "white" }}>
-              Date: {event.date ? format(event.date.toDate(), 'yyyy-MM-dd') : 'N/A'}
-              </Text>
-              <Text style={{ color: "white" }}>
-              Time: {event.time ? format(event.time.toDate(), 'h:mm a') : 'N/A'}
-              </Text>
-              <Text style={{ color: "white" }}>Location: {event.location}</Text>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.emptyState}>No Events Found.</Text>
-        )}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    marginBottom: 8,
+                    color: "#F2E8A2",
+                  }}
+                >
+                  {event.name}
+                </Text>
+                <Text style={{ color: "white" }}>
+                  Date:{" "}
+                  {event.date
+                    ? format(event.date.toDate(), "yyyy-MM-dd")
+                    : "N/A"}
+                </Text>
+                <Text style={{ color: "white" }}>
+                  Time:{" "}
+                  {event.time ? format(event.time.toDate(), "h:mm a") : "N/A"}
+                </Text>
+                <Text style={{ color: "white" }}>
+                  Location: {event.location}
+                </Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.emptyState}>No Events Found.</Text>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -302,8 +313,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     backgroundColor: "#753742",
     borderColor: "#d9ae94",
-    shadowColor: "#F2E8A2", // Neomorphism shadow color
-    shadowOpacity: 1, // Neomorphism shadow opacity
+    shadowColor: "#F2E8A2",
+    shadowOpacity: 1,
     shadowOffset: 20,
     shadowRadius: 1.5,
     borderRadius: 10,
@@ -319,4 +330,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EventList;
+export default React.memo(EventList);
