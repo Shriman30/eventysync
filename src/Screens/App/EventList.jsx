@@ -1,34 +1,21 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-} from "react-native";
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  addDoc,
-  getDocs,
-  onSnapshot,
-} from "firebase/firestore";
-
-import Header from "../../Components/Header";
-import FilterButton from "../../Components/FilterButton";
-import CreateEvent from "../../Components/CreateEvent";
-
-import { getAuth } from "firebase/auth";
+import {View,Text,ScrollView,TouchableOpacity,TextInput,StyleSheet} from "react-native";
 import { Button } from "react-native-elements/dist/buttons/Button";
-import { format } from "date-fns";
+import {getFirestore,collection,query,where,addDoc,getDocs,onSnapshot,updateDoc,deleteDoc,doc} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { format, isToday } from "date-fns";
+import Header from "../../Components/Header";
+import CreateEvent from "../../Components/CreateEvent";
+import FiltersSection from "../../Components/FiltersSection";
+
+// Color constants:
+const textColor = "#F2E8A2";
+const primaryColor = "#d9ae94";
+const widgetColor = "#753742";
 
 const EventList = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("all"); // Filter options: 'all', 'upcoming', 'ongoing', 'completed'
-
+  const [selectedFilter, setSelectedFilter] = useState("all");
   // state to load the user's events
   const [events, setEvents] = useState([]);
 
@@ -40,24 +27,43 @@ const EventList = ({ navigation }) => {
   const [eventLocation, setEventLocation] = useState("");
   const [eventCreated, setEventCreated] = useState(false);
 
+  // Function to open and close the Create Event modal.
   const toggleModal = () => {
     setModalVisible(!isModalVisible);
   };
 
+  // Function to submit new event entry into the database.
   const handleSubmit = async () => {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
+      // Ensure that the eventDate is a valid Date object (you may need to parse it)
+      if (!eventDate || !(eventDate instanceof Date)) {
+        console.error("Invalid event date.");
+        return;
+      }
+
+      const currentDate = new Date();
+      // Remove time components from both dates
+      eventDate.setHours(0, 0, 0, 0);
+      currentDate.setHours(0, 0, 0, 0);
+
+      // Determine the status based on the selected date
+      let newStatus = "upcoming";
+      if (eventDate < currentDate) {
+        newStatus = "complete";
+      } else if (isToday(eventDate)) {
+        newStatus = "ongoing";
+      }
 
       // Create a new event object
-      // TODO: the status should change based on the date inputted by the user
       const newEvent = {
         name: eventName,
         date: eventDate,
         time: eventTime,
         location: eventLocation,
         createdBy: user.uid,
-        status: "upcoming", // Set status to "upcoming" as an example
+        status: newStatus,
       };
 
       const firestore = getFirestore();
@@ -72,6 +78,7 @@ const EventList = ({ navigation }) => {
       setEventDate("");
       setEventTime("");
       setEventLocation("");
+      setEventCreated(false);
     } catch (error) {
       console.error("Error creating event:", error);
     }
@@ -109,9 +116,61 @@ const EventList = ({ navigation }) => {
     }
   };
 
+  // Function to periodically check and update event statuses.
+  const updateEventStatuses = async () => {
+    const firestore = getFirestore();
+    const eventsCollection = collection(firestore, "Events");
+
+    // Get the current date without the time component
+    const currentDate = new Date();
+    currentDate.setUTCHours(0, 0, 0, 0); // Set time to midnight in UTC
+
+    const q = query(
+      eventsCollection,
+      where("status", "==", "upcoming"),
+      where("date", "<=", currentDate)
+    );
+
+    const eventSnapshot = await getDocs(q);
+
+    // Loop through the events that need to be updated
+    eventSnapshot.forEach(async (eventDoc) => {
+      const event = eventDoc.data();
+      const eventRef = doc(eventsCollection, eventDoc.id);
+
+      // Get the date part of the event's date field
+      const eventDate = new Date(event.date);
+      eventDate.setUTCHours(0, 0, 0, 0); // Set time to midnight in UTC
+
+      // Calculate the new status based on the date part
+      let newStatus = event.status; // initialize to event's current status
+
+      if (eventDate.getTime() <= currentDate.getTime()) {
+        newStatus = "ongoing";
+      }
+
+      // Update the event status in Firestore if it's different
+      if (newStatus !== event.status) {
+        await updateDoc(eventRef, { status: newStatus });
+      }
+    });
+  };
+
+  // To update the event status periodically every minute.
+  useEffect(() => {
+    updateEventStatuses();
+    // Set an interval to call the function every minute (adjust as needed)
+    const intervalId = setInterval(updateEventStatuses, 60000);
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  // To retrieve the events based on user's filter selection.
   useEffect(() => {
     fetchEventsByFilter();
-
     // Cleanup function to unsubscribe when the component unmounts
     return () => {
       // Unsubscribe from the Firestore listener
@@ -142,7 +201,7 @@ const EventList = ({ navigation }) => {
 
         // Define the real-time listener for changes
         const unsubscribe = onSnapshot(q, () => {
-          // Handle real-time updates as needed
+          // Handle real-time updates as needed falert
         });
 
         // Unsubscribe from the listener to prevent memory leaks
@@ -151,24 +210,52 @@ const EventList = ({ navigation }) => {
     };
   }, [selectedFilter, eventCreated]);
 
-  // Filter events based on the search query
+  // Function to filter events based on the search query.
   const searchedEvents = events.filter((event) => {
     return event.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  // Function to mark an event as completed.
+  const handleMarkEventCompletion = async (event) => {
+    const firestore = getFirestore();
+    const eventsCollection = collection(firestore, "Events");
+
+    // Calculate the new status
+    let newStatus = "ongoing";
+    if (event.status === "ongoing") {
+      newStatus = "complete";
+    }
+
+    // Update the event status in Firestore
+    const eventRef = doc(eventsCollection, event.id);
+    await updateDoc(eventRef, { status: newStatus });
+
+    // Re-fetch the events to update the UI
+    fetchEventsByFilter();
+  };
+
+  // Function to delete an event.
+  const handleEventDelete = async (event) => {
+    try {
+      const firestore = getFirestore();
+      const eventsCollection = collection(firestore, "Events");
+      const eventRef = doc(eventsCollection, event.id);
+      await deleteDoc(eventRef);
+      // Re-fetch the events to update the UI
+      fetchEventsByFilter();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    }
+  };
+
+  // Render UI 
   return (
     <View style={styles.container}>
       <Header title={"Event List"} />
       <View style={{ backgroundColor: "rgba(11,37,69,0.90)" }}>
         <View style={{ flexDirection: "row" }}>
           <TextInput
-            style={[
-              styles.searchInput,
-              {
-                width: 260,
-                alignItems: "center",
-              },
-            ]}
+            style={styles.searchInput}
             placeholder="Search for events..."
             placeholderTextColor={"grey"}
             value={searchQuery}
@@ -180,40 +267,13 @@ const EventList = ({ navigation }) => {
             onPress={toggleModal}
           />
         </View>
-        <View style={styles.filterButtons}>
-          <FilterButton
-            label="All"
-            selected={selectedFilter === "all"}
-            onPress={() => {
-              setSelectedFilter("all");
-              fetchEventsByFilter();
-            }}
-          />
-          <FilterButton
-            label="Upcoming"
-            selected={selectedFilter === "upcoming"}
-            onPress={() => {
-              setSelectedFilter("upcoming");
-              fetchEventsByFilter();
-            }}
-          />
-          <FilterButton
-            label="Ongoing"
-            selected={selectedFilter === "ongoing"}
-            onPress={() => {
-              setSelectedFilter("ongoing");
-              fetchEventsByFilter();
-            }}
-          />
-          <FilterButton
-            label="Completed"
-            selected={selectedFilter === "completed"}
-            onPress={() => {
-              setSelectedFilter("completed");
-              fetchEventsByFilter();
-            }}
-          />
-        </View>
+
+        {/* Filters section */}
+        <FiltersSection
+          selectedFilter={selectedFilter}
+          setSelectedFilter={setSelectedFilter}
+          fetchEventsByFilter={fetchEventsByFilter}
+        />
       </View>
 
       {/*  Create Event form Modal */}
@@ -240,33 +300,48 @@ const EventList = ({ navigation }) => {
                 key={event.id}
                 style={styles.eventCard}
                 onPress={() => {
-                  // Navigate to the Event Details screen with event data
                   navigation.navigate("EventDetails", { event });
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "bold",
-                    marginBottom: 8,
-                    color: "#F2E8A2",
-                  }}
-                >
-                  {event.name}
-                </Text>
-                <Text style={{ color: "white" }}>
-                  Date:{" "}
-                  {event.date
-                    ? format(event.date.toDate(), "yyyy-MM-dd")
-                    : "N/A"}
-                </Text>
-                <Text style={{ color: "white" }}>
-                  Time:{" "}
-                  {event.time ? format(event.time.toDate(), "h:mm a") : "N/A"}
-                </Text>
-                <Text style={{ color: "white" }}>
-                  Location: {event.location}
-                </Text>
+                <View>
+                  <View style={{ flexDirection: "row" }}>
+                    <Text style={styles.eventName}>{event.name}</Text>
+                  </View>
+                  {/* Event info section */}
+                  <View>
+                    <Text style={styles.eventInfo}>
+                      Date:{" "}
+                      {event.date
+                        ? format(event.date.toDate(), "yyyy-MM-dd")
+                        : "N/A"}
+                    </Text>
+                    <Text style={styles.eventInfo}>
+                      Time:{" "}
+                      {event.time
+                        ? format(event.time.toDate(), "h:mm a")
+                        : "N/A"}
+                    </Text>
+                    <Text style={styles.eventInfo}>
+                      Location: {event.location}
+                    </Text>
+                  </View>
+
+                  {/* Complete / Delete Event section */}
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      onPress={() => handleMarkEventCompletion(event)}
+                      style={styles.completeButton}
+                    >
+                      <Text style={{ color: textColor }}>Mark Complete</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleEventDelete(event)}
+                      style={[styles.completeButton, styles.deleteButton]}
+                    >
+                      <Text style={{ color: textColor }}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </TouchableOpacity>
             ))
           ) : (
@@ -289,6 +364,8 @@ const styles = StyleSheet.create({
     borderColor: "#F2E8A2",
     borderRadius: 8,
     backgroundColor: "white",
+    width: 260,
+    alignItems: "center",
   },
   createEventButton: {
     alignSelf: "center",
@@ -299,11 +376,7 @@ const styles = StyleSheet.create({
     shadowColor: "#F2E8A2",
     marginTop: 14,
   },
-  filterButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
-  },
+
   scrollableSection: {
     borderTopWidth: 0.75,
     borderColor: "#F2E8A2",
@@ -311,22 +384,58 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     marginHorizontal: 16,
-    backgroundColor: "#753742",
-    borderColor: "#d9ae94",
-    shadowColor: "#F2E8A2",
-    shadowOpacity: 1,
-    shadowOffset: 20,
-    shadowRadius: 1.5,
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: widgetColor, 
+    borderRadius: 8,
     elevation: 2,
+    padding: 12,
+    marginBottom: 16,
+    marginRight: 12,
+    borderColor: primaryColor, // Border color for Glassmorphism effect
+    borderWidth: 1, // Border width for Glassmorphism effect
+    shadowColor: textColor, // Neomorphism shadow color
+    shadowOpacity: 1, // Neomorphism shadow opacity
+    shadowOffset: 20,
+    shadowRadius: 1,
+    alignSelf: "center",
+  },
+  eventName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#F2E8A2",
+  },
+  eventInfo: { 
+    color: "white" 
   },
   emptyState: {
     fontSize: 16,
     color: "#F2E8A2",
     fontWeight: "900",
     textAlign: "center",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  completeButton: {
+    backgroundColor: "#18694A",
+    padding: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "48%", // Adjust as needed,
+    shadowColor: textColor,
+    shadowRadius: 1,
+    shadowOpacity: 0.5,
+    shadowOffset: 20,
+  },
+  deleteButton: {
+    backgroundColor: "#800000",
+    shadowColor: textColor,
+    shadowRadius: 1,
+    shadowOpacity: 0.5,
+    shadowOffset: 20,
   },
 });
 

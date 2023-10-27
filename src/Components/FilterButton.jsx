@@ -12,7 +12,7 @@ const FilterButton = ({ label, selected, onPress }) => (
     </TouchableOpacity>)
   );
 
-export default FilterButton
+export default React.memo(FilterButton);
 
 const styles = StyleSheet.create({  filterButtons: {
     flexDirection: "row",

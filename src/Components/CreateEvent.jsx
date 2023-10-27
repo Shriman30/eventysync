@@ -150,7 +150,7 @@ const CreateEvent = ({
   );
 };
 
-export default CreateEvent;
+export default React.memo(CreateEvent);
 
 const styles = StyleSheet.create({
   modalContent: {

@@ -55,7 +55,7 @@ const WelcomeScreen = ({ navigation }) => {
   );
 };
 
-export default WelcomeScreen;
+export default React.memo(WelcomeScreen);
 
 const styles = StyleSheet.create({
   container: {

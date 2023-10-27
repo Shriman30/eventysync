@@ -9,6 +9,6 @@ const EventDetails = () => {
   )
 }
 
-export default EventDetails
+export default React.memo(EventDetails)
 
 const styles = StyleSheet.create({})

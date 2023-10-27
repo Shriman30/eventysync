@@ -7,53 +7,83 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { getFirestore, collection, where, getDocs } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 import Header from "../../Components/Header";
-import UpcomingEventsSection from "../../Components/UpcomingEvents";
+import EventsSection from "../../Components/UpcomingEvents";
 
 const Dashboard = ({ navigation }) => {
-  const [events, setEvents] = useState([]);
-  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [ongoingEvents, setOngoingEvents] = useState([]);
 
   const goToAllEvents = () => {
-    navigation.navigate("Events");
+    navigation.navigate("Events List");
   };
 
   // Function to fetch upcoming events from Firebase
   const fetchUpcomingEvents = async () => {
-    const firestore = getFirestore();
-    const eventsCollection = collection(firestore, "Events");
-    const auth = getAuth();
-    const user = auth.currentUser;
+    try {
+      const firestore = getFirestore();
+      const eventsCollection = collection(firestore, "Events");
+      const auth = getAuth();
+      const user = auth.currentUser;
 
-    if (user) {
-      // Construct a Firestore query for upcoming events created by the user
-      const query = collection(
-        eventsCollection,
-        where("status", "==", "upcoming"),
-        where("createdBy", "==", user.uid)
-      );
+      if (user) {
+        // Construct a Firestore query to get upcoming events for the current user
+        const q = query(
+          eventsCollection,
+          where("status", "==", "upcoming"), // Adjust the status filter
+          where("createdBy", "==", user.uid)
+        );
 
-      const eventSnapshot = await getDocs(query);
+        const eventSnapshot = await getDocs(q);
 
-        // Add a console log to check the retrieved data
-    console.log("Upcoming events data:", eventSnapshot.docs);
-
-      // Map the data from Firebase to an array of event objects
-      const eventData = eventSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setEvents(eventData);
-      setUpcomingEventsCount(eventData.length);
+        const eventData = eventSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUpcomingEvents(eventData);
+      }
+    } catch (error) {
+      console.error("Error fetching upcoming events:", error);
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchUpcomingEvents();
-  }, []);
+    // Function to fetch upcoming events from Firebase
+    const fetchOngoingEvents = async () => {
+      try {
+        const firestore = getFirestore();
+        const eventsCollection = collection(firestore, "Events");
+        const auth = getAuth();
+        const user = auth.currentUser;
+  
+        if (user) {
+          // Construct a Firestore query to get upcoming events for the current user
+          const q = query(
+            eventsCollection,
+            where("status", "==", "ongoing"), // Adjust the status filter
+            where("createdBy", "==", user.uid)
+          );
+  
+          const eventSnapshot = await getDocs(q);
+  
+          const eventData = eventSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setOngoingEvents(eventData);
+        }
+      } catch (error) {
+        console.error("Error fetching upcoming events:", error);
+      }
+    }
 
   return (
     <View style={styles.container}>
@@ -64,9 +94,7 @@ const Dashboard = ({ navigation }) => {
         <Text style={styles.sectionHeader}>Upcoming Events</Text>
         <View style={styles.section}>
           <View style={styles.sectionContent}>
-            <Text style={styles.sectionText}>
-              You have {upcomingEventsCount} events coming up this week.
-            </Text>
+          <Text style={styles.sectionText}> You have {upcomingEvents.length.toString()} Upcoming events </Text>
             <TouchableOpacity
               style={styles.viewAllButton}
               onPress={goToAllEvents}
@@ -75,13 +103,31 @@ const Dashboard = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           {/* Upcoming Events Section */}
-          <UpcomingEventsSection
+          <EventsSection
             navigation={navigation}
-            events={events}
-            fetchUpcomingEvents={fetchUpcomingEvents}
+            events={upcomingEvents}
+            fetchEvents={fetchUpcomingEvents}
           />
         </View>
-        {/* Current Tasks */}
+
+        <Text style={styles.sectionHeader}>Ongoing Events</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionText}> You have {ongoingEvents.length.toString()} ongoing events </Text>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={goToAllEvents}
+            >
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Ongoing Events Section */}
+          <EventsSection
+            navigation={navigation}
+            events={ongoingEvents}
+            fetchEvents={fetchOngoingEvents}
+          />
+        </View>
       </ScrollView>
       <StatusBar style="light" />
     </View>

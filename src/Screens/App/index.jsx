@@ -1,5 +1,5 @@
-import { StyleSheet, Text} from "react-native";
 import React from "react";
+import {Text} from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Dashboard from "./Dashboard";
@@ -22,8 +22,6 @@ const Index = () => {
             iconName = focused ? "list" : "list-outline";
           } else if (route.name === "Events List") {
             iconName = focused ? "calendar" : "calendar-outline";
-          } else if (route.name === "Calendar") {
-            iconName = focused ? "calendar" : "calendar-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
           }
@@ -43,8 +41,6 @@ const Index = () => {
             label = "Tasks";
           } else if (route.name === "Events List") {
             label = "Events List";
-          } else if (route.name === "Calendar") {
-            label = "Calendar";
           } else if (route.name === "Profile") {
             label = "Profile";
           }
@@ -57,11 +53,6 @@ const Index = () => {
         component={Dashboard}
         options={{ headerShown: false }}
       />
-      {/* <Tab.Screen
-        name="Tasks"
-        component={Tasks}
-        options={{ headerShown: false }}
-      /> */}
       <Tab.Screen
         name="Events List"
         component={EventList}
@@ -72,15 +63,9 @@ const Index = () => {
         component={Profile}
         options={{ headerShown: false }}
       />
-      {/* <Tab.Screen
-        name="Calendar"
-        component={CalendarView}
-        options={{ headerShown: false }}
-      /> */}
     </Tab.Navigator>
   );
 };
 
-export default Index;
+export default React.memo(Index);
 
-const styles = StyleSheet.create({});

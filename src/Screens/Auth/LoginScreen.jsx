@@ -81,7 +81,7 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
-export default LoginScreen;
+export default React.memo(LoginScreen);
 
 const styles = StyleSheet.create({
   container: {

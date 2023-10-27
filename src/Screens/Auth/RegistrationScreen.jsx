@@ -84,7 +84,7 @@ const RegistrationScreen = ({ navigation }) => {
   );
 };
 
-export default RegistrationScreen;
+export default React.memo(RegistrationScreen);
 
 const styles = StyleSheet.create({
   container: {

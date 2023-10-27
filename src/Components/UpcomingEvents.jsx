@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -6,51 +6,36 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 import { format } from "date-fns";
+import {getFirestore,collection,updateDoc,doc} from "firebase/firestore";
 
-const UpcomingEventsSection = ({ navigation }) => {
-  const [events, setEvents] = useState([]);
+const EventsSection = ({ navigation, events, fetchEvents }) => {
 
-  // Function to fetch upcoming events from Firebase
-  const fetchUpcomingEvents = async () => {
-    try {
+    // Function to mark an event as completed.
+    const handleMarkEventCompletion = async (event) => {
       const firestore = getFirestore();
       const eventsCollection = collection(firestore, "Events");
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (user) {
-        // Construct a Firestore query to get upcoming events for the current user
-        const q = query(
-          eventsCollection,
-          where("status", "==", "upcoming"), // Adjust the status filter
-          where("createdBy", "==", user.uid)
-        );
-
-        const eventSnapshot = await getDocs(q);
-
-        const eventData = eventSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setEvents(eventData);
+  
+      // Calculate the new status
+      let newStatus = "ongoing";
+      if (event.status === "ongoing" ||event.status === "upcoming") {
+        newStatus = "complete";
       }
-    } catch (error) {
-      console.error("Error fetching upcoming events:", error);
-    }
-  };
+  
+      // Update the event status in Firestore
+      const eventRef = doc(eventsCollection, event.id);
+      await updateDoc(eventRef, { status: newStatus });
+    };
+  
+    const pollingInterval = 1000 * 60 * 0.25;
 
+    const fetchEventsPeriodically = () => {
+      fetchEvents();
+      setTimeout(fetchEventsPeriodically, pollingInterval);
+    };
   useEffect(() => {
-    fetchUpcomingEvents();
-  }, []); // Empty dependency array means it will fetch events once when the component mounts
+    fetchEventsPeriodically();
+  }, []); 
 
   return (
     <View style={styles.section}>
@@ -84,7 +69,7 @@ const UpcomingEventsSection = ({ navigation }) => {
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: "#18694A" }]}
                 onPress={() => {
-                  // Implement the action for marking the event as completed
+                  handleMarkEventCompletion(item)
                 }}
               >
                 <Text style={{ textAlign: "center", color: "#F3ECA8" }}>
@@ -157,4 +142,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UpcomingEventsSection;
+export default React.memo(EventsSection);
